@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import time
 
 # --- Cài đặt chung ---
-OUTPUT_FOLDER = "stock_data"
 START_DATE = "2020-01-01"
 END_DATE = datetime.now().strftime('%Y-%m-%d')
 REQUEST_DELAY_SECONDS = 1
@@ -13,7 +12,8 @@ REQUEST_DELAY_SECONDS = 1
 stock_instance = Vnstock()
 
 # --- Hàm tiện ích ---
-def fetch_and_save_stock_data(ticker, start_date, end_date, folder_path, data_source='VCI'):
+def fetch_and_save_stock_data(ticker, exchange, start_date, end_date, folder_path, data_source='VCI'):
+    folder_path = os.path.join(folder_path, exchange)
     try:
         print(f"Đang chuẩn bị tải dữ liệu cho mã: {ticker}...")
         time.sleep(REQUEST_DELAY_SECONDS)
@@ -24,12 +24,11 @@ def fetch_and_save_stock_data(ticker, start_date, end_date, folder_path, data_so
             end=end_date,
             interval='1D'
         )
-
         if df is not None and not df.empty:
             if 'time' in df.columns:
                 df['time'] = pd.to_datetime(df['time'])
                 df = df.sort_values(by='time')
-
+            
             file_path = os.path.join(folder_path, f"{ticker}.csv")
             df.to_csv(file_path, index=False)
             print(f"    Đã lưu dữ liệu cho {ticker} vào {file_path}")
@@ -39,19 +38,21 @@ def fetch_and_save_stock_data(ticker, start_date, end_date, folder_path, data_so
         print(f"    Lỗi khi tải dữ liệu cho mã {ticker}: {e}")
 
 # --- Tạo thư mục lưu trữ ---
-if not os.path.exists(OUTPUT_FOLDER):
-    os.makedirs(OUTPUT_FOLDER)
-    print(f"Đã tạo thư mục: {OUTPUT_FOLDER}")
-
-stock_data_folder = os.path.join(OUTPUT_FOLDER, "individual_stocks")
-if not os.path.exists(stock_data_folder):
-    os.makedirs(stock_data_folder)
-    print(f"Đã tạo thư mục: {stock_data_folder}")
-
+OUTPUT_FOLDER = "stock_data"
 market_data_folder = os.path.join(OUTPUT_FOLDER, "market_indices")
-if not os.path.exists(market_data_folder):
-    os.makedirs(market_data_folder)
-    print(f"Đã tạo thư mục: {market_data_folder}")
+dirs_to_create = [
+    OUTPUT_FOLDER,
+    os.path.join(OUTPUT_FOLDER, "individual_stocks"),
+    os.path.join(OUTPUT_FOLDER, "market_indices"),
+]
+stock_data_folder = os.path.join(OUTPUT_FOLDER, "individual_stocks")
+for folder in dirs_to_create:
+    os.makedirs(folder, exist_ok=True)
+exchanges = ["HOSE", "HNX"]
+for ex in exchanges:
+    path = os.path.join(OUTPUT_FOLDER, "individual_stocks", ex)
+    os.makedirs(path, exist_ok=True)
+
 
 # --- Lấy danh sách mã cổ phiếu từ HOSE và HNX ---
 print("Đang lấy danh sách mã cổ phiếu...")
@@ -70,8 +71,6 @@ try:
         print(f"Số lượng mã ban đầu: {len(all_symbols_df_raw)}")
         print(f"Các giá trị duy nhất trong cột 'type' (ban đầu): {all_symbols_df_raw['type'].unique()}")
 
-        # *** ĐOẠN CODE SIÊU NHỎ ĐƯỢC THÊM VÀO ĐÂY ***
-        # Chỉ lấy những dòng có cột 'type' là 'STOCK'
         if 'type' in all_symbols_df_raw.columns:
             all_symbols_df = all_symbols_df_raw[all_symbols_df_raw['type'] == 'STOCK'].copy()
             print(f"Số lượng mã sau khi lọc theo 'type' == 'STOCK': {len(all_symbols_df)}")
@@ -114,25 +113,12 @@ except Exception as e:
 
 
 # --- Tải và lưu dữ liệu cho từng mã cổ phiếu ---
-# (Phần này giữ nguyên)
-target_tickers = []
-if hose_tickers:
-    print(f"\n--- Bắt đầu tải dữ liệu cho các mã sàn HOSE ({len(hose_tickers)} mã) ---")
-    target_tickers.extend(hose_tickers)
-if hnx_tickers:
-    print(f"\n--- Bắt đầu tải dữ liệu cho các mã sàn HNX ({len(hnx_tickers)} mã) ---")
-    target_tickers.extend(hnx_tickers)
-
-if not target_tickers:
-    print("\nKhông có mã cổ phiếu (STOCK) nào để tải dữ liệu. Kiểm tra lại bước lấy danh sách mã.")
-else:
-    pass
-
-for ticker_code in target_tickers:
-    fetch_and_save_stock_data(ticker_code, START_DATE, END_DATE, stock_data_folder, data_source='VCI')
+for hose_ticker in hose_tickers:
+    fetch_and_save_stock_data(hose_ticker, "HOSE", START_DATE, END_DATE, stock_data_folder, data_source='VCI')
+for hnx_ticker in hnx_tickers:
+    fetch_and_save_stock_data(hnx_ticker, "HNX", START_DATE, END_DATE, stock_data_folder, data_source='VCI')
 
 # --- Tải và lưu dữ liệu chỉ số thị trường ---
-# (Phần này giữ nguyên)
 print("\n--- Bắt đầu tải dữ liệu chỉ số thị trường ---")
 market_indices = {
     "VNINDEX": "HOSE",
