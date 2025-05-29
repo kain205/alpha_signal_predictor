@@ -115,8 +115,7 @@ def calculate_features(df_stock_raw, ticker_name_for_api):
                 print(f"    Quarterly ratio data for {ticker_name_for_api} is empty from source. Using NaNs for fundamental features.")
         except Exception as e:
             print(f"    [Error] Failed to fetch or process quarterly ratios for {ticker_name_for_api}: {e}")
-            import traceback
-            print(traceback.format_exc())
+
     else:
         print(f"    vnstock not available, skipping fundamental data for {ticker_name_for_api}.")
 
@@ -159,35 +158,36 @@ def main():
     input_base_folder = os.path.join(current_script_directory, "stock_data")
     input_folder = os.path.join(input_base_folder, "individual_stocks")
     output_folder_path = os.path.join(current_script_directory, OUTPUT_FOLDER)
+    os.makedirs(output_folder_path, exist_ok= True);
+    exchanges = ["HOSE", "HNX"]
+    for ex in exchanges:
+        path = os.path.join(output_folder_path, ex)
+        os.makedirs(path, exist_ok=True) 
+    print(f"Created output folder: {output_folder_path}")
 
-    if stock_instance_main is None:
-        print("vnstock library could not be initialized. Cannot fetch fundamental data. Exiting.")
-        return
-    if not os.path.exists(input_folder):
-        print(f"Input folder not found: {input_folder}"); return
-    if not os.path.exists(output_folder_path):
-        os.makedirs(output_folder_path); print(f"Created output folder: {output_folder_path}")
-
-    stock_files = glob.glob(os.path.join(input_folder, "*.csv"))
+    stock_files = glob.glob(os.path.join(input_folder, "*", "*.csv"))    
     if not stock_files: print(f"No CSV files found in {input_folder}"); return
-
     print(f"Found {len(stock_files)} stock files to process.")
+
     for stock_file_path in stock_files:
         ticker_name_from_file = os.path.basename(stock_file_path).replace(".csv", "")
-        print(f"\nProcessing: {ticker_name_from_file} ({stock_file_path})")
+        exchange = os.path.basename(os.path.dirname(stock_file_path))
+
+        #prepare input features
         try:
             df_stock_raw = pd.read_csv(stock_file_path)
             df_features = calculate_features(df_stock_raw, ticker_name_for_api=ticker_name_from_file)
             if not df_features.empty:
-                output_file_path_full = os.path.join(output_folder_path, f"{ticker_name_from_file}_features.csv")
+                output_file_path_full = os.path.join(output_folder_path, exchange, f"{ticker_name_from_file}_features.csv")
                 df_features.to_csv(output_file_path_full, index=False)
                 print(f"    Successfully processed and saved features to: {output_file_path_full}")
             else:
                 print(f"    No features generated for {ticker_name_from_file} (data issues or insufficient history).")
         except Exception as e:
             print(f"    [Critical Error] Failed to process file {stock_file_path}: {e}")
-            import traceback
-            print(traceback.format_exc()) # Print full traceback for critical errors
+        
+
+
     print("\n--- Feature calculation process complete! ---")
     print(f"Calculated features saved in: {output_folder_path}")
 

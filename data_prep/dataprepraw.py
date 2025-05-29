@@ -113,10 +113,10 @@ except Exception as e:
 
 
 # --- Tải và lưu dữ liệu cho từng mã cổ phiếu ---
-for hose_ticker in hose_tickers:
-    fetch_and_save_stock_data(hose_ticker, "HOSE", START_DATE, END_DATE, stock_data_folder, data_source='VCI')
-for hnx_ticker in hnx_tickers:
-    fetch_and_save_stock_data(hnx_ticker, "HNX", START_DATE, END_DATE, stock_data_folder, data_source='VCI')
+#for hose_ticker in hose_tickers:
+#    fetch_and_save_stock_data(hose_ticker, "HOSE", START_DATE, END_DATE, stock_data_folder, data_source='VCI')
+#for hnx_ticker in hnx_tickers:
+#    fetch_and_save_stock_data(hnx_ticker, "HNX", START_DATE, END_DATE, stock_data_folder, data_source='VCI')
 
 # --- Tải và lưu dữ liệu chỉ số thị trường ---
 print("\n--- Bắt đầu tải dữ liệu chỉ số thị trường ---")
@@ -139,6 +139,8 @@ for index_ticker, exchange_name in market_indices.items():
             if 'time' in df_index.columns:
                 df_index['time'] = pd.to_datetime(df_index['time'])
                 df_index = df_index.sort_values(by='time')
+            df_index['FUT_RET_10D'] = (df_index['close'].shift(-10) / df_index['close'] - 1) * 100
+            df_index = df_index.dropna(subset=["FUT_RET_10D"])
             file_path = os.path.join(market_data_folder, f"{index_ticker}.csv")
             df_index.to_csv(file_path, index=False)
             print(f"    Đã lưu dữ liệu cho chỉ số {index_ticker} vào {file_path}")
