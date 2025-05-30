@@ -7,7 +7,7 @@ from vnstock import Vnstock
 
 # Global Settings 
 OUTPUT_FOLDER = "calculated_stock_features"
-REQUEST_DELAY_SECONDS = 1 
+REQUEST_DELAY_SECONDS = 1.25 
 stock_instance_main = Vnstock()
 
 def map_quarter_to_date(row):
@@ -46,7 +46,6 @@ def calculate_features(df_stock_raw, ticker_name_for_api):
             df_quarterly_ratios_raw = stock_specific_instance.finance.ratio(
                 period='quarter', lang='en', dropna=False
             )
-
             df_flat_columns = pd.DataFrame()
 
             if not df_quarterly_ratios_raw.empty:
@@ -149,7 +148,7 @@ def calculate_features(df_stock_raw, ticker_name_for_api):
                      final_fundamental_cols + technical_feature_cols + ['FUT_RET_10D']
     existing_output_columns = [col for col in output_columns if col in df.columns]
     df_out = df[existing_output_columns].copy()
-    key_technical_and_target_cols_for_dropna = ['zscore_mom_10d_60w', 'FUT_RET_10D']
+    key_technical_and_target_cols_for_dropna = ['zscore_mom_10d_60w', 'FUT_RET_10D'] + fundamental_feature_names_flat
     df_out = df_out.dropna(subset=[col for col in key_technical_and_target_cols_for_dropna if col in df_out.columns])
     return df_out
 
